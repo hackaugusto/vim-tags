@@ -93,10 +93,10 @@ for ignore_file in g:vim_tags_ignore_files
     endif
 endfor
 
-" Estimate s:tags_directory
+" Search upwards for s:tags_directory
 for tags_dir in g:vim_tags_directories
-    if isdirectory(tags_dir)
-        let s:tags_directory = tags_dir
+    let s:tags_directory = finddir(tags_dir, ';') 
+    if !empty(s:tags_directory)
         break
     endif
 endfor
