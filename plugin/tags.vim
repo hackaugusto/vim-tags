@@ -27,9 +27,19 @@ if !exists('g:tags_auto_generate')
     let g:tags_auto_generate = 1
 endif
 
+if !exists('g:tags_debug')
+    let g:tags_debug = 0
+endif
+
 " Main tags
 if !exists('g:tags_ctags_exe')
     let g:tags_ctags_exe = "ctags -R {OPTIONS} {DIRECTORY} 2>/dev/null"
+endif
+
+if !executable(g:tags_ctags_exe[:stridx(g:tags_ctags_exe, ' ')-1])
+    echohl WarningMsg
+    echomsg "vim-tags: Missing the executable: " . g:tags_ctags_exe[:stridx(g:tags_ctags_exe, ' ')-1]
+    echohl None
 endif
 
 if !exists('g:tags_cscope_exe')
@@ -81,10 +91,19 @@ if !exists('g:tags_use_language_field')
     let g:tags_use_language_field = 1
 endif
 
+" Add the support for completion plugins (like YouCompleteMe or WiseComplete) (add --fields=+l)
+if g:tags_use_language_field
+  let g:tags_ctags_exe = substitute(g:tags_ctags_exe, "{OPTIONS}", '--fields=+l {OPTIONS}', "")
+  let g:tags_gems_tags_command = substitute(g:tags_gems_tags_command, "{OPTIONS}", '--fields=+l {OPTIONS}', "")
+endif
+
 command! -bang -nargs=0 TagsGenerate :call s:generate_tags(<bang>0, 1)
 
 " Generate options and custom dirs list
-let options = ['--tag-relative']
+" `--tag-relative` produced wrong paths for one python project, now just
+" change the directory to the one where the tag file will be saved
+" let options = ['--tag-relative']  
+let options = []
 let s:files_to_include = []
 
 " Exclude ignored files and directories (also handle negated patterns (!))
@@ -122,12 +141,6 @@ if !exists('g:tags_global_directory')
 endif
 
 
-" Add the support for completion plugins (like YouCompleteMe or WiseComplete) (add --fields=+l)
-if g:tags_use_language_field
-  let g:tags_ctags_exe = substitute(g:tags_ctags_exe, "{OPTIONS}", '--fields=+l {OPTIONS}', "")
-  let g:tags_gems_tags_command = substitute(g:tags_gems_tags_command, "{OPTIONS}", '--fields=+l {OPTIONS}', "")
-endif
-
 " Add main tags file to tags option
 if s:tags_directory[0] == '/'
     let tagentry = s:tags_directory . '/' . g:tags_main_file
@@ -135,7 +148,6 @@ else
     let tagentry = substitute(s:tags_directory . '/' . g:tags_main_file . ';', '^\./', '', '')
 endif
 silent! exe 'set tags+=' . tagentry
-call add(options, '-f ' . s:tags_directory . '/' . g:tags_main_file)
 
 " ignore directories 
 for f in values(g:tags_global_tags)
@@ -207,14 +219,25 @@ fun! s:generate_tags(bang, redraw)
         endif
     endfor
 
+    " --tag-relative generated the wrong path on a python project (Django website app/managers.py was app/mangers.py.py)
+    " changing directory and fixing path instead
+    let project_tags_command = 'cd ' . s:tags_directory . '; ' . g:tags_ctags_exe
+    let directory = simplify(substitute(s:tags_directory, '[^/]\+\(/\|$\)', '../', 'g') . s:project_directory)
+    let options = s:ctags_options . ' -f ' . g:tags_main_file
+
+    let project_tags_command = substitute(project_tags_command, '{OPTIONS}', options, '')
+    let project_tags_command = substitute(project_tags_command, '{DIRECTORY}', directory, '')
+    
     "Project tags file
-    let project_tags_command = substitute(g:tags_ctags_exe, '{OPTIONS}', s:ctags_options, '')
-    let project_tags_command = substitute(project_tags_command, '{DIRECTORY}', s:project_directory, '')
     call s:execute_async_command(project_tags_command)
+
+    if g:tags_debug
+        echomsg "Tags: ctags comand: " . project_tags_command
+    endif
 
     " Append files from negated patterns
     if !empty(s:files_to_include)
-        let append_command_template = substitute(g:tags_ctags_exe, '{OPTIONS}', '--tag-relative -a -f ' . s:tags_directory . '/' . g:tags_main_file, '')
+        let append_command_template = substitute(g:tags_ctags_exe, '{OPTIONS}', '-a -f ' . s:tags_directory . '/' . g:tags_main_file, '')
         for file_to_include in s:files_to_include
             call s:execute_async_command(substitute(append_command_template, '{DIRECTORY}', file_to_include, ''))
         endfor
