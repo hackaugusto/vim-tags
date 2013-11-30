@@ -111,6 +111,9 @@ endfor
 
 if !exists('s:tags_directory')
     let s:tags_directory = '.'
+endif
+
+if !exists('s:project_directory')
     let s:project_directory = '.'
 endif
 
@@ -180,7 +183,7 @@ fun! s:generate_tags(bang, redraw)
     if a:bang
         let l:files = split(globpath(s:tags_directory, '*' . g:tags_extension, 1), '\n')
                 \ + [s:tags_directory . '/' . g:tags_main_file]
-                \ + split(globpath(s:tags_global_directory, '*' . g:tags_extension), '\n')
+                \ + split(globpath(g:tags_global_directory, '*' . g:tags_extension), '\n')
 
         for f in l:files
             call writefile([], f, 'b')
@@ -238,6 +241,9 @@ fun! s:generate_tags(bang, redraw)
     endif
 endfun
 
-if filereadable(s:tags_directory . '/' . g:tags_main_file) && g:tags_auto_generate
-    autocmd BufWritePost * call s:generate_tags(0, 0)
+if g:tags_auto_generate && !empty(s:tags_directory)
+  if !filereadable(s:tags_directory . '/' . g:tags_main_file)
+    call s:generate_tags(0, 0)
+  endif
+  autocmd BufWritePost * call s:generate_tags(0, 0)
 endif
