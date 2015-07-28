@@ -82,10 +82,6 @@ if !exists('g:tags_global_tags')
     let g:tags_global_tags = {}
 endif
 
-if !exists('g:tags_global_directory')
-    let g:tags_global_directory = ''
-endif
-
 if len(g:tags_global_tags) && !exists('g:tags_global_directory')
     echohl WarningMsg
     echomsg "vim-tags: Missing configuration g:tags_global_directory."
@@ -143,11 +139,17 @@ fun! s:tags_directory()
   endfor
 
   if !exists('b:tags_directory')
-      let b:tags_directory = '.'
+    let b:tags_directory = '.'
   endif
 
   if !exists('b:project_directory')
-      let b:project_directory = '.'
+    let b:project_directory = '.'
+  endif
+
+  if exists('g:tags_global_directory') && len(g:tags_global_directory)
+    let b:tags_global_directory = g:tags_global_directory
+  else
+    let b:tags_global_directory = b:tags_directory
   endif
 
   for file in split(globpath(b:tags_directory, '*' . g:tags_extension, 1), '\n')
@@ -168,12 +170,17 @@ fun! s:tags_directory()
 endfun
 
 fun! s:tags_global()
-    let base_directory = substitute(g:tags_global_directory, '^\~', $HOME, '')
+  let base_directory = substitute(b:tags_global_directory, '^\~', $HOME, '')
 
-    for file_name in keys(g:tags_global_tags)
-      let tag_path = simplify(base_directory . '/' . file_name . g:tags_extension)
-      silent! exe 'setlocal tags+=' . tag_path
-    endfor
+  for file_name in keys(g:tags_global_tags)
+    let tag_path = simplify(base_directory . '/' . file_name . g:tags_extension)
+    silent! exe 'setlocal tags+=' . tag_path
+  endfor
+endfun
+
+fun! s:global_tag_name(tag_name)
+  let l:directory = substitute(b:tags_global_directory, '^\~', $HOME, '')
+  return simplify(l:directory . '/' . a:tag_name . g:tags_extension)
 endfun
 
 fun! s:tags_init_for_buffer()
@@ -187,19 +194,36 @@ fun! s:tags_init_for_buffer()
     let b:options = []
     let b:files_to_include = []
 
+    call s:tags_directory()
+
     call s:tags_ignore_files()
     call s:tags_ignore_directories()
     call s:tags_global()
-    call s:tags_directory()
   exe ':cd ' . old_cwd
 endfun
 
 fun! s:execute_async_command(command)
+  if g:tags_debug
+    echomsg "[Tags] execute async: " . a:command
+  endif
+
+  if !len(a:command)
+    return
+  endif
+
+  if g:tags_debug
     if g:tags_use_vim_dispatch && exists('g:loaded_dispatch')
-        silent! exe 'Start!' a:command
+       exe 'Start!' a:command
     else
-        silent! exe '!' . a:command '&'
+       exe '!' . a:command '&'
     endif
+  else
+    if g:tags_use_vim_dispatch && exists('g:loaded_dispatch')
+      silent! exe 'Start!' a:command
+    else
+      silent! exe '!' . a:command '&'
+    endif
+  endif
 endfun
 
 fun! s:tags_generate(bang, redraw)
@@ -211,7 +235,7 @@ fun! s:tags_generate(bang, redraw)
   if a:bang
     let l:files = split(globpath(b:tags_directory, '*' . g:tags_extension, 1), '\n')
             \ + [b:tags_directory . '/' . g:tags_main_file]
-            \ + split(globpath(g:tags_global_directory, '*' . g:tags_extension), '\n')
+            \ + split(globpath(b:tags_global_directory, '*' . g:tags_extension), '\n')
 
     for file in l:files
       call writefile([], file, 'b')
