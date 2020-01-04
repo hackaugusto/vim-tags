@@ -20,6 +20,12 @@ if !exists('g:tags_debug')
     let g:tags_debug = 0
 endif
 
+" Cache of tags for large code bases, useful when tags are set globally set,
+" e.g. when the linux kernel is added to tags_global_tags in the init.vim.
+if !exists('g:tags_global_directory')
+    let g:tags_global_directory = ''
+endif
+
 if !exists('g:tags_ctags_exe')
     let g:tags_ctags_exe = "ctags -R --fields=+l {OPTIONS} {DIRECTORY} 2>/dev/null"
 endif
@@ -64,11 +70,21 @@ if !exists('g:tags_global_tags')
     let g:tags_global_tags = {}
 endif
 
-if len(g:tags_global_tags) && !exists('g:tags_global_directory')
-    echohl WarningMsg
-    echomsg "vim-tags: Missing configuration g:tags_global_directory."
+fun! s:is_validate_config()
+  " Validation is called after loading because the variables can be lazily
+  " set.
+  if type(g:tags_global_tags) != v:t_dict
+    echohl ErrorMsg
+    echomsg "vim-tags: g:tags_global_tags must be a dictonary of the form:"
+    echomsg "{'unique_name_of_the_project': 'source_directory'}"
     echohl None
-endif
+    return 0
+  endif
+
+  return 1
+endfun
+
+call s:is_validate_config()
 
 " Exclude ignored files and directories (also handle negated patterns (!))
 " TODO:
@@ -89,9 +105,9 @@ fun! s:tags_ignore_files()
 endfun
 
 fun! s:tags_ignore_directories()
-  for file in values(g:tags_global_tags)
-      if file[:strlen(b:project_directory)-1] == b:project_directory
-          call add(b:options, '--exclude=' . shellescape(file))
+  for source_directory in values(g:tags_global_tags)
+      if source_directory[:strlen(b:project_directory)-1] == b:project_directory
+          call add(b:options, '--exclude=' . shellescape(source_directory))
       endif
   endfor
 endfun
@@ -117,7 +133,8 @@ fun! s:tags_directory()
     let b:project_directory = '.'
   endif
 
-  if exists('g:tags_global_directory') && len(g:tags_global_directory)
+  " Use the cache if enabled
+  if len(g:tags_global_directory)
     let b:tags_global_directory = g:tags_global_directory
   else
     let b:tags_global_directory = b:tags_directory
@@ -143,8 +160,8 @@ endfun
 fun! s:tags_global()
   let base_directory = substitute(b:tags_global_directory, '^\~', $HOME, '')
 
-  for file_name in keys(g:tags_global_tags)
-    let tag_path = simplify(base_directory . '/' . file_name . g:tags_extension)
+  for tag_name in keys(g:tags_global_tags)
+    let tag_path = simplify(base_directory . '/' . tag_name . g:tags_extension)
     silent! exe 'setlocal tags+=' . tag_path
   endfor
 endfun
@@ -155,6 +172,10 @@ fun! s:global_tag_name(tag_name)
 endfun
 
 fun! s:tags_init_for_buffer()
+  if !s:is_validate_config()
+    return
+  endif
+
   let old_cwd = getcwd()
 
   if g:tags_debug
@@ -190,9 +211,11 @@ fun! s:execute_async_command(command)
 endfun
 
 fun! s:tags_generate(bang, redraw)
-  if empty('b:tags_directory')
-    call s:tags_init_for_buffer()
+  if !s:is_validate_config()
+    return
   endif
+
+  call s:tags_init_for_buffer()
 
   " Remove existing tags
   if a:bang
@@ -205,7 +228,7 @@ fun! s:tags_generate(bang, redraw)
     endfor
   endif
 
-  for [tag_name, tagdir_name] in items(g:tags_global_tags)
+  for [tag_name, source_directory] in items(g:tags_global_tags)
     let file_name = s:global_tag_name(tag_name)
 
     " create directory if needed
@@ -214,8 +237,8 @@ fun! s:tags_generate(bang, redraw)
       call mkdir(curdir, 'p')
     endif
 
-    if (getftime(file_name) < getftime(tagdir_name)) || (getfsize(file_name) == 0)
-      let custom_tags_command = substitute(g:tags_ctags_exe, '{DIRECTORY}', shellescape(tagdir_name), '')
+    if (getftime(file_name) < getftime(source_directory)) || (getfsize(file_name) == 0)
+      let custom_tags_command = substitute(g:tags_ctags_exe, '{DIRECTORY}', shellescape(source_directory), '')
       let custom_tags_command = substitute(custom_tags_command, '{OPTIONS}', '-f ' . shellescape(file_name), '')
       call s:execute_async_command(custom_tags_command)
     endif
