@@ -59,11 +59,6 @@ if !exists('g:tags_extension')
     let g:tags_extension = '.tags'
 endif
 
-" Should be the Vim-Dispatch plugin used for asynchronous tags generating if present?
-if !exists('g:tags_use_vim_dispatch')
-    let g:tags_use_vim_dispatch = 1
-endif
-
 " External libraries and big projects
 if !exists('g:tags_global_tags')
     let g:tags_global_tags = {}
@@ -188,17 +183,9 @@ fun! s:execute_async_command(command)
   endif
 
   if g:tags_debug
-    if g:tags_use_vim_dispatch && exists('g:loaded_dispatch')
-       exe 'Start!' a:command
-    else
-       exe '!' . a:command '&'
-    endif
+     exe '!' . a:command '&'
   else
-    if g:tags_use_vim_dispatch && exists('g:loaded_dispatch')
-      silent! exe 'Start!' a:command
-    else
-      silent! exe '!' . a:command '&'
-    endif
+    silent! exe '!' . a:command '&'
   endif
 endfun
 
