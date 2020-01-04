@@ -1,11 +1,3 @@
-" vim-tags - Automatic ctags for vim
-" Maintainer:   Augusto Hack, Szymon Wrozynski
-" Version:      0.0.9
-"
-" Installation:
-"     Using Vundle :
-"     Plugin 'hackaugusto/vim-tags'
-"
 " License:
 " Copyright (c) 2012-2013 Szymon Wrozynski and Contributors.
 " Distributed under the same terms as Vim itself.
@@ -40,11 +32,6 @@ endif
 
 if !exists('g:tags_cscope_exe')
     let g:tags_cscope_exe = "cscope -Rb {OPTIONS} {DIRECTORY} 2>/dev/null"
-endif
-
-" Gemfile tags
-if !exists('g:tags_gems_tags_command')
-    let g:tags_gems_tags_command = "ctags -R {OPTIONS} `bundle show --paths` 2>/dev/null"
 endif
 
 " Dont create tags for files that are ignored by the version control
@@ -96,7 +83,6 @@ endif
 " Add the support for completion plugins (like YouCompleteMe or WiseComplete) (add --fields=+l)
 if g:tags_use_language_field
   let g:tags_ctags_exe = substitute(g:tags_ctags_exe, "{OPTIONS}", '--fields=+l {OPTIONS}', "")
-  let g:tags_gems_tags_command = substitute(g:tags_gems_tags_command, "{OPTIONS}", '--fields=+l {OPTIONS}', "")
 endif
 
 " Exclude ignored files and directories (also handle negated patterns (!))
@@ -274,22 +260,6 @@ fun! s:tags_generate(bang, redraw)
     for file_to_include in b:files_to_include
       call s:execute_async_command(substitute(append_command_template, '{DIRECTORY}', file_to_include, ''))
     endfor
-  endif
-
-  "Gemfile.lock
-  let gemfile_time = getftime('Gemfile.lock')
-  if gemfile_time > -1
-    let gems_path = b:tags_directory . '/Gemfile.lock' . g:tags_extension
-    let gems_command = substitute(g:tags_gems_tags_command, '{OPTIONS}', '-f ' . gems_path, '')
-    let gems_time = getftime(gems_path)
-    if gems_time > -1
-      if (gems_time < gemfile_time) || (getfsize(gems_path) == 0)
-        call s:execute_async_command(gems_command)
-      endif
-    else
-      call s:execute_async_command(gems_command)
-      silent! exe 'setlocal tags+=' . substitute(gems_path, '^\./', '', '')
-    endif
   endif
 
   if a:redraw

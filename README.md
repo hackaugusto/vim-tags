@@ -145,16 +145,6 @@ The Vim-Tags available variables are:
 
 
 
-* `vim_tags_gems_tags_command`
-
-    * Default: ``"ctags -R {OPTIONS} `bundle show --paths` 2>/dev/null"``
-
-    Command used for Gemfile tags generation.
-
-        let g:vim_tags_gems_tags_command = "ctags -R {OPTIONS} `bundle show --paths` 2>/dev/null"
-
-
-
 
 * `vim_tags_use_vim_dispatch`
 
