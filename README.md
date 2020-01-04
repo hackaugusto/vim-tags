@@ -159,15 +159,6 @@ The Vim-Tags available variables are:
 
 
 
-* `vim_tags_use_ycm`
-
-    * Default: `1`
-
-    Use `ctags` with `--field=+l` option necessary for the tag completion in the
-    [`YouCompleteMe`](https://github.com/Valloric/YouCompleteMe) plugin, if the YCM's tag completion
-    presence is detected.
-
-        let g:vim_tags_use_ycm = 1
 
 
 

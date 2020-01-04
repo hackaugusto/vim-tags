@@ -21,7 +21,7 @@ if !exists('g:tags_debug')
 endif
 
 if !exists('g:tags_ctags_exe')
-    let g:tags_ctags_exe = "ctags -R {OPTIONS} {DIRECTORY} 2>/dev/null"
+    let g:tags_ctags_exe = "ctags -R --fields=+l {OPTIONS} {DIRECTORY} 2>/dev/null"
 endif
 
 if !executable(g:tags_ctags_exe[:stridx(g:tags_ctags_exe, ' ')-1])
@@ -73,16 +73,6 @@ if len(g:tags_global_tags) && !exists('g:tags_global_directory')
     echohl WarningMsg
     echomsg "vim-tags: Missing configuration g:tags_global_directory."
     echohl None
-endif
-
-" Should the --field+=l option be used
-if !exists('g:tags_use_language_field')
-    let g:tags_use_language_field = 1
-endif
-
-" Add the support for completion plugins (like YouCompleteMe or WiseComplete) (add --fields=+l)
-if g:tags_use_language_field
-  let g:tags_ctags_exe = substitute(g:tags_ctags_exe, "{OPTIONS}", '--fields=+l {OPTIONS}', "")
 endif
 
 " Exclude ignored files and directories (also handle negated patterns (!))
