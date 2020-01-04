@@ -27,7 +27,7 @@ if !exists('g:tags_global_directory')
 endif
 
 if !exists('g:tags_ctags_exe')
-    let g:tags_ctags_exe = "ctags -R --fields=+l {OPTIONS} {DIRECTORY} 2>/dev/null"
+    let g:tags_ctags_exe = "ctags -R --c++-kinds=+{prototype} --fields=+{line}{language}{inherits}{access}{signature} --extra=+{qualified}{reference} {OPTIONS} {DIRECTORY} 2>/dev/null"
 endif
 
 if !executable(g:tags_ctags_exe[:stridx(g:tags_ctags_exe, ' ')-1])
