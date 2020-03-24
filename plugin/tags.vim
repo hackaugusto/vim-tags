@@ -36,10 +36,6 @@ if !executable(g:tags_ctags_exe[:stridx(g:tags_ctags_exe, ' ')-1])
     echohl None
 endif
 
-if !exists('g:tags_cscope_exe')
-    let g:tags_cscope_exe = "cscope -Rb {OPTIONS} {DIRECTORY} 2>/dev/null"
-endif
-
 " Dont create tags for files that are ignored by the version control
 if !exists('g:tags_vcs_ignore')
     let g:tags_vcs_ignore = ['.gitignore', '.svnignore', '.cvsignore']
