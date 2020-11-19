@@ -178,7 +178,14 @@ fun! s:tags_init_for_buffer()
     echomsg "[Tags] running Init: " . expand("%:p:h")
   endif
 
-  exe ':cd %:p:h'
+  " This will fail under for buffers that are not associated with a file, e.g.
+  " when calling :Glog
+  try
+    exe ':cd %:p:h'
+  catch /E472:/
+    return
+  endtry
+
     let b:options = []
     let b:files_to_include = []
 
